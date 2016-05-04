@@ -16,6 +16,11 @@ def get_ngrams(n, text):
     ngrams = []
     text_length = len(text)
     max_index_ngram_start = text_length - n
+
+    if max_index_ngram_start < 0 and text_length > 0:
+        #print text
+        ngrams.append(tuple(text))
+        return ngrams
     if n == 1:
         for i in range (max_index_ngram_start + 1):
             ngrams.append(text[i])
@@ -126,13 +131,16 @@ def find_bleu_score(cand_path,ref_path):
         #print "count_clip_sum:",count_clip_sum
         p_n.append(calculate_ngram_precision(total_cand_ngrams,count_clip_sum))
 
-    print "c,r:",c,r
-    print "p_n:",p_n
+    #print "c,r:",c,r
+    #print "p_n:",p_n
 
     BP = calculate_brevity_penalty()
-    print "BP:",BP
+    #print "BP:",BP
     BLEU = calculate_BLEU(BP,p_n)
     print "BLEU:",BLEU
+
+    with open('bleu_out.txt','w') as f:
+        f.write(str(BLEU))
 
 
 def calculate_count_clip_by_sentence(n,cand_fp,ref_fp,total_cand_ngrams):
