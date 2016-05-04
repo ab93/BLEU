@@ -4,11 +4,25 @@ import re
 import pprint
 
 pp = pprint.PrettyPrinter(indent=1)
+punct = re.compile(r'[^0-9a-zA-Z ]')
 
-def calculate_count_clip(cand_line, ref_lines):
+def calculate_ngram_precision(cand_ngram,count_clip_sum):
+    return float(count_clip_sum)/len(cand_ngram)
+
+def get_ngrams(n, text):
+    ngrams = []
+    text_length = len(text)
+    max_index_ngram_start = text_length - n
+    for i in range (max_index_ngram_start + 1):
+        #ngram_set.add(tuple(text[i:i+n]))
+        ngrams.append(tuple(text[i:i+n]))
+        #ngram_set.add(text[i])
+    return ngrams
+
+def calculate_count_clip(cand_ngrams, ref_ngrams):
     clip = 0
     cand_count = {}
-    for word in cand_line:
+    for word in cand_ngrams:
         if word in cand_count:
             cand_count[word] += 1
         else:
@@ -16,8 +30,8 @@ def calculate_count_clip(cand_line, ref_lines):
     #print cand_count
     #pp.pprint(cand_count)
 
-    ref_count = [None] * len(ref_lines)
-    for index,line in enumerate(ref_lines):
+    ref_count = [None] * len(ref_ngrams)
+    for index,line in enumerate(ref_ngrams):
         ref_count[index] = {}
         for word in line:
             if word in ref_count[index]:
@@ -45,20 +59,20 @@ def calculate_count_clip(cand_line, ref_lines):
     return clip
 
 
+def get_line(fp):
+    line = fp.readline()
+    return line
+
+def clean_line(line):
+    global punct
+    line = line.lower()
+    line = punct.sub('',line)
+    return line.split()
+
 
 def read_data(cand_path,ref_path):
-    punct = re.compile(r'[^0-9a-zA-Z ]')
-
-    def get_line(fp):
-        line = fp.readline()
-        return line
-
-    def clean_line(line):
-        line = line.lower()
-        line = punct.sub('',line)
-        return line.split()
-
     cand_fp = open(cand_path,'r')
+    total_cand_ngrams = []
 
     ref_fp = []
     try:
@@ -70,20 +84,26 @@ def read_data(cand_path,ref_path):
         fp = open(ref_path, 'r')
         ref_fp.append(fp)
 
-    count_clip = 0
+    count_clip_sum = 0
     while True:  #for each sentence
-        cand_line = clean_line(get_line(cand_fp))
-        if len(cand_line) == 0:
+        cand_ngrams = get_ngrams(1,clean_line(get_line(cand_fp)))
+        total_cand_ngrams.extend(cand_ngrams)
+
+        if len(cand_ngrams) == 0:
             break
 
-        ref_lines = []
+        ref_ngrams = []
         for fp in ref_fp:
-            ref_lines.append(clean_line(get_line(fp)))
+            ref_ngrams.append(get_ngrams(1,clean_line(get_line(fp))))
 
-        count_clip += calculate_count_clip(cand_line,ref_lines)
-        raw_input("one sentence over!\n")
+        count_clip_sum += calculate_count_clip(cand_ngrams,ref_ngrams)
+        print "one sentence over!"
 
-    print count_clip
+    print "count_clip_sum:",count_clip_sum
+    p = calculate_ngram_precision(total_cand_ngrams,count_clip_sum)
+    print "p:",p
+
+#def calculate_count_clip_by_sentence():
 
 
 def main():
